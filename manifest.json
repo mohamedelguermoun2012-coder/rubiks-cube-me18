@@ -3,9 +3,10 @@
   "name": "Rubik's Cube 3D ME18",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/extension/48dp/2x/baseline_extension_black_48dp.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/3503/3503831.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
