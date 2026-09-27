@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube 3D with Timer by ME18</title>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(to bottom, #0d1b2a, #1b263b); /* لون السماء الليلية */
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* خلفية الجبال باستخدام SVG */
+        #mountains-bg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50vh;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* نص الخلفية by ME18 - مائل وفي سطر واحد */
+        #background-signature {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8vw;
+            font-weight: 900;
+            font-style: italic;
+            white-space: nowrap;
+            color: rgba(255, 255, 255, 0.08);
+            letter-spacing: 4px;
+            pointer-events: none;
+            z-index: 0;
+            font-family: 'Arial Black', sans-serif;
+            text-transform: uppercase;
+        }
+
+        /* إعدادات مؤقت الوقت في الأعلى */
+        #timer-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ffcc;
+            padding: 15px 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            z-index: 10;
+        }
+        #timer-display {
+            font-size: 36px;
+            font-weight: bold;
+            font-family: monospace;
+            margin-bottom: 8px;
+        }
+        .timer-btn {
+            padding: 5px 12px;
+            font-size: 13px;
+            margin: 0 3px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #00ffcc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .timer-btn:hover {
+            background: #00ffcc;
+            color: #000;
+        }
+
+        /* أزرار تحريك المكعب في الأسفل */
+        #controls-ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            padding: 12px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        .cube-btn {
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .cube-btn:hover {
+            background: #555;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- نص الخلفية -->
+    <div id="background-signature">by ME18</div>
+
+    <!-- رسمة الجبال للفي الخلفية -->
+    <svg id="mountains-bg" viewBox="0 0 1440 320" preserveAspectRatio="none">
+        <!-- طبقة الجبال الخلفية -->
+        <path fill="#0f172a" fill-opacity="0.6" d="M0,224L48,213.3C96,203,192,181,288,186.7C384,192,480,224,576,213.3C672,203,768,149,864,149.3C960,149,1056,203,1152,213.3C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        <!-- طبقة الجبال الأمامية -->
+        <path fill="#050a14" fill-opacity="0.9" d="M0,288L60,266.7C120,245,240,203,360,208C480,213,600,267,720,266.7C840,267,960,213,1080,197.3C1200,181,1320,203,1380,213.3L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+    </svg>
+
+    <!-- واجهة المؤقت -->
+    <div id="timer-container">
+        <div id="timer-display">00:00.00</div>
+        <div>
+            <button class="timer-btn" onclick="startTimer()">بدء</button>
+            <button class="timer-btn" onclick="stopTimer()">إيقاف</button>
+            <button class="timer-btn" onclick="resetTimer()">إعادة ضبط</button>
+        </div>
+    </div>
+
+    <!-- واجهة أزرار تحريك المكعب -->
+    <div id="controls-ui">
+        <button class="cube-btn" onclick="rotateLayer('y', 1, -1)">الوجه العلوي (U)</button>
+        <button class="cube-btn" onclick="rotateLayer('y', -1, 1)">الوجه السفلي (D)</button>
+        <button class="cube-btn" onclick="rotateLayer('x', 1, -1)">الوجه الأيمن (R)</button>
+        <button class="cube-btn" onclick="rotateLayer('x', -1, 1)">الوجه الأيسر (L)</button>
+        <button class="cube-btn" onclick="rotateLayer('z', 1, -1)">الوجه الأمامي (F)</button>
+    </div>
+
+    <script>
+        // --- برمجة مؤقت الوقت ---
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+
+        function updateTimerDisplay() {
+            const totalMilliseconds = elapsedTime + (startTime ? Date.now() - startTime : 0);
+            const minutes = Math.floor(totalMilliseconds / 60000);
+            const seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+            const hundredths = Math.floor((totalMilliseconds % 1000) / 10);
+
+            const pad = (num, size = 2) => String(num).padStart(size, '0');
+            document.getElementById('timer-display').innerText = 
+                `${pad(minutes)}:${pad(seconds)}.${pad(hundredths)}`;
+        }
+
+        function startTimer() {
+            if (!timerInterval) {
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimerDisplay, 10);
+            }
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                elapsedTime += Date.now() - startTime;
+                startTime = 0;
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            elapsedTime = 0;
+            updateTimerDisplay();
+        }
+
+        // --- إعداد مشهد الـ 3D والمكعب ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        scene.add(ambientLight);
+
+        const materials = [
+            new THREE.MeshBasicMaterial({ color: 0xb71234 }), // أحمر
+            new THREE.MeshBasicMaterial({ color: 0x009b48 }), // أخضر
+            new THREE.MeshBasicMaterial({ color: 0xffffff }), // أبيض
+            new THREE.MeshBasicMaterial({ color: 0xffd500 }), // أصفر
+            new THREE.MeshBasicMaterial({ color: 0x0046ad }), // أزرق
+            new THREE.MeshBasicMaterial({ color: 0xff5800 })  // برتقالي
+        ];
+
+        const size = 0.95;
+        const gap = 1.02;
+        const cubelets = [];
+
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                for (let z = -1; z <= 1; z++) {
+                    const geometry = new THREE.BoxGeometry(size, size, size);
+                    const cubelet = new THREE.Mesh(geometry, materials);
+                    cubelet.position.set(x * gap, y * gap, z * gap);
+                    scene.add(cubelet);
+                    cubelets.push(cubelet);
+                }
+            }
+        }
+
+        camera.position.set(4, 4, 6);
+        controls.update();
+
+        let isRotating = false;
+
+        function rotateLayer(axis, layerValue, dir) {
+            if (isRotating) return;
+            isRotating = true;
+
+            // بدء المؤقت تلقائياً عند أول حركة إذا لم يكن يعمل
+            if (!timerInterval && elapsedTime === 0) {
+                startTimer();
+            }
+
+            const pivot = new THREE.Group();
+            scene.add(pivot);
+
+            const activeCubelets = cubelets.filter(c => {
+                return Math.abs(c.position[axis] - layerValue * gap) < 0.1;
+            });
+
+            activeCubelets.forEach(c => pivot.attach(c));
+
+            let currentAngle = 0;
+            const targetAngle = (Math.PI / 2) * dir;
+            const speed = 0.1 * dir;
+
+            function animateRotation() {
+                if (Math.abs(currentAngle) < Math.abs(targetAngle)) {
+                    pivot.rotation[axis] += speed;
+                    currentAngle += speed;
+                    requestAnimationFrame(animateRotation);
+                } else {
+                    pivot.rotation[axis] = targetAngle;
+                    pivot.updateMatrixWorld();
+                    activeCubelets.forEach(c => {
+                        scene.attach(c);
+                        c.position.x = Math.round(c.position.x / gap) * gap;
+                        c.position.y = Math.round(c.position.y / gap) * gap;
+                        c.position.z = Math.round(c.position.z / gap) * gap;
+                    });
+                    scene.remove(pivot);
+                    isRotating = false;
+                }
+            }
+            animateRotation();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
